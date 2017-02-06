@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 from itertools import repeat
 import numpy as np
@@ -60,4 +60,6 @@ if __name__ == "__main__":
     plt.stem(test[0], test[1])
     plt.xlabel("discrete time")
     plt.ylabel("users in time window")
+    plt.savefig("training_data.png")
     plt.show()
+

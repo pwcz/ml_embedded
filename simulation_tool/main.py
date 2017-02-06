@@ -94,6 +94,7 @@ class SimulationProcess:
             plt.xlabel(plot_layout[p][3])
             plt.ylabel(plot_layout[p][4])
             plt.grid(True)
+        plt.savefig("reward_function.png")
         plt.show()
 
 
