@@ -35,6 +35,7 @@ class SimulationProcess:
         Function for starting simulation
         """
         # get training data
+        sim_start = timer()
         training_data_gold = self.training_data_generator.get_train_data()
 
         # prepare simulating system
@@ -57,8 +58,9 @@ class SimulationProcess:
             next_action = training_data.pop()
 
             # embedded simulator set-up for each epoch
-            embedded.time_to_delay = epoch
+            # embedded.time_to_delay = epoch
             embedded.power_left = self.start_power
+            # embedded.last_decision = self.start_time
 
             for current_time in self.training_data_generator.time_range(self.start_time, self.end_time,
                                                                         self.time_delta_sym):
@@ -68,19 +70,24 @@ class SimulationProcess:
                 # event actions
                 if next_action == current_time:
                     delay = embedded.event_action(current_time)
+                    # print("delay == " + str(delay))
                     data_record['delays_data'].append(delay)
                     if len(training_data) > 0:
                         next_action = training_data.pop()
 
             # collecting data
             avg_delay = sum(data_record['delays_data'])/len(data_record['delays_data'])
+            norm_power_left = float(embedded.power_left)/float(self.start_power)
             self.epoch_data['quality_data'].append(self.quality_function(self.start_power - embedded.power_left,
                                                                          avg_delay))
             self.epoch_data['average_delay'] .append(avg_delay)
-            self.epoch_data['power_left'].append(float(embedded.power_left)/float(self.start_power))
+            self.epoch_data['power_left'].append(norm_power_left)
             self.epoch_data['epoch'].append(epoch)
             end = timer()
-            logging.info("Epoch " + '{:3}'.format(epoch) + " Time: " + '{:05.2f}'.format(end - start) + " s")
+            logging.info("Epoch " + '{:3}'.format(epoch) + " | Time: " + '{:05.2f}'.format(end - start) + " s" +
+                         " | Avg_delay = " + '{:5.2f}'.format(avg_delay) + " s | Norm. power left = " +
+                         '{:03.3f}'.format(norm_power_left))
+        logging.info("LEARNING FINISHED! Elapsed time: " + '{:3.3f}'.format(timer()-sim_start))
 
     def display_epoch_data(self, plots):
         plt.figure(1)
@@ -96,7 +103,6 @@ class SimulationProcess:
             plt.grid(True)
         plt.savefig("reward_function.png")
         plt.show()
-
 
 if __name__ == "__main__":
     logging.info("Program start")

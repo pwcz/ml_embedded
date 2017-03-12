@@ -29,10 +29,10 @@ class TestPlan:
         time_delta_sym = datetime.timedelta(seconds=1)
         data_generator = DataGenerator(_delta_seconds=1200, _data_schema_type='1t')
         epoch_start = 1
-        epoch_number = 200
-        epoch_stop = 200
+        epoch_number = 100
+        epoch_stop = 100
         epoch_step = 1
-        start_power = 86400
+        start_power = 24*3600
         quality_fun = quality_function
         get_new_test_data_for_each_epoch = False
 
