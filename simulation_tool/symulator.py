@@ -5,13 +5,11 @@ import numpy as np
 
 
 class System:
-    def __init__(self, _start_time):
-        self.power_consumption = {True: 0.1, False: 1}
-        self.is_standby_mode = False
-        self.power_left = 86400
+    def __init__(self, _start_time, start_power=86400, test_plan=None):
+        self.start_power = start_power
+        self.power_left = self.start_power
         self.last_event = _start_time
         self.last_decision = _start_time
-        self.delays = {False: 0.55, True: 3}
         self.time_to_delay = 600
         self.decision_interval = 1200
         self.active_input = False
@@ -29,27 +27,25 @@ class System:
         else:
             self.time_to_read_input -= 1
 
-        # self.power_left -= self.power_consumption[self.is_standby_mode]
         if _current_time - self.last_decision >= datetime.timedelta(seconds=self.decision_interval)\
                 or _current_time < self.last_decision:
-            # print(_current_time)
+
             self.last_decision = _current_time
             state = (_current_time.hour * 3600 + _current_time.minute * 60 +
                      _current_time.second) / self.decision_interval
-            # print("state = " + str(state))
+
             if not self.first_start:
                 self.learning_a.update_q_table(self.calculate_reward(), int(state))
             self.first_start = False
             self.current_clock = self.learning_a.choose_action(int(state))
 
+    def reset_epoch(self):
+        self.power_left = self.start_power
+
     def event_action(self, _current_time):
         self.reward += 21
         self.reward -= self.time_to_read_input
         return self.time_to_read_input
-        # action_delay = self.delays[self.is_standby_mode]
-        # self.is_standby_mode = False
-        # self.last_event = _current_time
-        # return action_delay
 
     def calculate_reward(self):
         reward = self.reward
@@ -57,14 +53,19 @@ class System:
         return reward
 
 
-class QLearning:
+class StandardLearning:
     def __init__(self):
-        self.actions = np.array([60, 45, 35, 30, 16, 8, 4, 2, 1])
-        self.decision_time = 300
+        pass
+
+
+class QLearning:
+    def __init__(self, actions=np.array([60, 45, 35, 30, 16, 8, 4, 2, 1]), learning_rate=0.5, discount_factor=0.5,
+                 e_greedy=.5):
+        self.actions = actions
         self.states_num = 72
-        self.lr = 0.5
-        self.y = 0.5
-        self.e_greedy = 0.05
+        self.lr = learning_rate
+        self.y = discount_factor
+        self.e_greedy = e_greedy
         self.q_table = np.zeros([self.states_num, self.actions.size])
         self.current_state = None
         self.action = None
