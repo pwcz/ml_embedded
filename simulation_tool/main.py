@@ -23,6 +23,7 @@ class SimulationProcess:
         self.epoch_step = _test_plan.epoch_step
         self.start_power = _test_plan.start_power
         self.get_new_test_data_for_each_epoch = _test_plan.get_new_test_data_for_each_epoch
+        self.legend = _test_plan.get_legend()
         self.epoch_data = {
             'average_delay': [],
             'power_left': [],
@@ -101,9 +102,66 @@ class MultipleTests:
     def __init__(self, simulation_systems):
         self.sim_sys = simulation_systems
 
+    def start(self):
+        for sim in self.sim_sys:
+            # print(sim)
+            sim.start_simulation()
+
+    def display_results(self, plots):
+        plt.figure(1)
+        line_style = '.-'
+        plot_line_colors = ['r', 'b', 'g', 'k', 'm', 'c']
+        plot_layout = {'delays': ['epoch', 'average_delay', None, 'epoch', 'average delays [s]'],
+                       'power_left': ['epoch', 'power_left', None, 'epoch', 'normalized power left']
+                       }
+        for i, p in enumerate(plots):
+            plt.subplot(len(plots)*100 + 11 + i)
+            legend = []
+            for j, data in enumerate(self.sim_sys):
+                plt.plot(data.epoch_data[plot_layout[p][0]], data.epoch_data[plot_layout[p][1]], plot_line_colors[j] +
+                         line_style)
+                legend.append(data.legend)
+
+            plt.legend(legend, loc='best')
+            plt.xlabel(plot_layout[p][3])
+            plt.ylabel(plot_layout[p][4])
+            plt.grid(True)
+        plt.savefig("reward_function.png")
+        plt.show()
+
 
 if __name__ == "__main__":
     logging.info("Program start")
-    sym_system = SimulationProcess(TestPlan.DefaultTest)
-    sym_system.start_simulation()
-    sym_system.display_epoch_data(['delays', 'power_left'])
+
+    # Standard reinforcement learning with greedy policy
+    # env = MultipleTests([SimulationProcess(TestPlan.StandardTest(e_greedy=0.1)),
+    #                      SimulationProcess(TestPlan.StandardTest(e_greedy=0.5)),
+    #                      SimulationProcess(TestPlan.StandardTest(e_greedy=0.9))])
+
+    # Q-learning e_greedy
+    # env = MultipleTests([SimulationProcess(TestPlan.QLearning(e_greedy=0.1)),
+    #                      SimulationProcess(TestPlan.QLearning(e_greedy=0.5)),
+    #                      SimulationProcess(TestPlan.QLearning(e_greedy=0.9))])
+
+    # Q-learning e_greedy=0.9 learning_rate
+    # env = MultipleTests([SimulationProcess(TestPlan.QLearning(e_greedy=0.9, learning_rate=.1)),
+    #                      SimulationProcess(TestPlan.QLearning(e_greedy=0.9, learning_rate=.5)),
+    #                      SimulationProcess(TestPlan.QLearning(e_greedy=0.9, learning_rate=.9)),
+    #                      SimulationProcess(TestPlan.QLearning(e_greedy=0.9, learning_rate=1))])
+
+    # Q-learning e_greedy=0.9 learning_rate=1
+    # env = MultipleTests([SimulationProcess(TestPlan.QLearning(e_greedy=0.9, learning_rate=1, discount_factor=0)),
+    #                      SimulationProcess(TestPlan.QLearning(e_greedy=0.9, learning_rate=1, discount_factor=.1)),
+    #                      SimulationProcess(TestPlan.QLearning(e_greedy=0.9, learning_rate=1, discount_factor=0.5)),
+    #                      SimulationProcess(TestPlan.QLearning(e_greedy=0.9, learning_rate=1, discount_factor=0.9)),
+    #                      SimulationProcess(TestPlan.QLearning(e_greedy=0.9, learning_rate=1, discount_factor=1))
+    #                      ])
+
+    # Best
+    env = MultipleTests([SimulationProcess(TestPlan.StandardTest(e_greedy=0.9)),
+                         SimulationProcess(TestPlan.QLearning(e_greedy=0.9, learning_rate=1, discount_factor=0.5)),
+                         SimulationProcess(TestPlan.QLearning())
+                         ])
+
+    env.start()
+    env.display_results(['delays', 'power_left'])

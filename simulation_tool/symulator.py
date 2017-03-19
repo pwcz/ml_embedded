@@ -16,7 +16,7 @@ class System:
         self.reward = 0
         self.time_to_read_input = 0
         self.current_clock = 100
-        self.learning_a = QLearning()
+        self.learning_a = test_plan.learning_module
         self.first_start = True
 
     def simulation_step(self, _current_time):
@@ -35,8 +35,10 @@ class System:
                      _current_time.second) / self.decision_interval
 
             if not self.first_start:
-                self.learning_a.update_q_table(self.calculate_reward(), int(state))
+                # update (Q table)/knowledge
+                self.learning_a.update_knowledge(self.calculate_reward(), int(state))
             self.first_start = False
+            # Learning - choose action
             self.current_clock = self.learning_a.choose_action(int(state))
 
     def reset_epoch(self):
@@ -52,33 +54,3 @@ class System:
         self.reward = 0
         return reward
 
-
-class StandardLearning:
-    def __init__(self):
-        pass
-
-
-class QLearning:
-    def __init__(self, actions=np.array([60, 45, 35, 30, 16, 8, 4, 2, 1]), learning_rate=0.5, discount_factor=0.5,
-                 e_greedy=.5):
-        self.actions = actions
-        self.states_num = 72
-        self.lr = learning_rate
-        self.y = discount_factor
-        self.e_greedy = e_greedy
-        self.q_table = np.zeros([self.states_num, self.actions.size])
-        self.current_state = None
-        self.action = None
-
-    def choose_action(self, state):
-        if np.random.random() > self.e_greedy:
-            self.action = np.where(self.q_table[state, :] == np.random.choice(self.q_table[state, :]))[0][0]
-        else:
-            self.action = np.argmax(self.q_table[state, :])
-        self.current_state = state
-        return self.actions[self.action]
-
-    def update_q_table(self, reward, next_state):
-        delta = self.lr*(reward + self.y*np.max(self.q_table[next_state, :]) -
-                         self.q_table[self.current_state, self.action])
-        self.q_table[self.current_state, self.action] += delta
