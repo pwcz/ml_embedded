@@ -32,14 +32,38 @@ class StandardLearning:
 
 
 class SARSAAlgorithm:
-    def __init__(self, actions=np.array([60, 45, 35, 30, 16, 8, 4, 2, 1])):
-        pass
+    def __init__(self, actions=np.array([60, 45, 35, 30, 16, 8, 4, 2, 1]), learning_rate=.5, discount_factor=.5,
+                 e_greedy=.5):
+        self.actions = actions
+        self.states_num = 72
+        self.lr = learning_rate
+        self.y = discount_factor
+        self.e_greedy = e_greedy
+        # self.q_table = np.zeros([self.states_num, self.actions.size])
+        self.q_table = np.full([self.states_num, self.actions.size], -24*60)
+        # self.q_table.fill(-np.inf)
+        self.current_state = None
+        self.action = 0
+        self.prev_action = 0
 
     def choose_action(self, state):
-        pass
+        self.prev_action = self.action
+        if np.random.random() > self.e_greedy:
+            result = np.where(self.q_table[state, :] == np.random.choice(self.q_table[state, :]))
+            # print(result)
+            self.action = [0][0]
+        else:
+            self.action = np.argmax(self.q_table[state, :])
+        self.current_state = state
+        return self.actions[self.action]
 
     def update_knowledge(self, reward, next_state):
-        pass
+        delta = self.lr*(reward + self.y*self.q_table[next_state, self.action] -
+                         self.q_table[self.current_state, self.action])
+        self.q_table[self.current_state, self.action] += delta
+
+    def __str__(self):
+        return "SARSA ($\\varepsilon$=" + str(self.e_greedy) + ", $\\alpha$=" + str(self.lr) + ",$\\gamma$=" + str(self.y) + ")"
 
 
 class QLearning:
@@ -68,6 +92,7 @@ class QLearning:
         self.q_table[self.current_state, self.action] += delta
 
     def __str__(self):
-        return "Q-Learning (e=" + str(self.e_greedy) + ", a=" + str(self.lr) + ",y=" + str(self.y) + ")"
+        return "Q-Learning (\varepsilon=" + str(self.e_greedy) + ", \alpha=" + str(self.lr) + ",\gamma=" + str(self.y) \
+               + ")"
 
     update_knowledge = update_q_table

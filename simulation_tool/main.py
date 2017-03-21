@@ -109,10 +109,12 @@ class MultipleTests:
 
     def display_results(self, plots):
         plt.figure(1)
+        plt.rc('text', usetex=True)
+        plt.rc('font', family='serif')
         line_style = '.-'
         plot_line_colors = ['r', 'b', 'g', 'k', 'm', 'c']
-        plot_layout = {'delays': ['epoch', 'average_delay', None, 'epoch', 'average delays [s]'],
-                       'power_left': ['epoch', 'power_left', None, 'epoch', 'normalized power left']
+        plot_layout = {'delays': ['epoch', 'average_delay', None, 'epoch', r'average delays [s]'],
+                       'power_left': ['epoch', 'power_left', None, 'epoch', r'normalized power left']
                        }
         for i, p in enumerate(plots):
             plt.subplot(len(plots)*100 + 11 + i)
@@ -122,7 +124,7 @@ class MultipleTests:
                          line_style)
                 legend.append(data.legend)
 
-            plt.legend(legend, loc='best')
+            # plt.legend(legend, loc='best')
             plt.xlabel(plot_layout[p][3])
             plt.ylabel(plot_layout[p][4])
             plt.grid(True)
@@ -158,9 +160,10 @@ if __name__ == "__main__":
     #                      ])
 
     # Best
-    env = MultipleTests([SimulationProcess(TestPlan.StandardTest(e_greedy=0.9)),
-                         SimulationProcess(TestPlan.QLearning(e_greedy=0.9, learning_rate=1, discount_factor=0.5)),
-                         SimulationProcess(TestPlan.QLearning())
+    env = MultipleTests([SimulationProcess(TestPlan.StandardTest(e_greedy=0.9))
+                         #SimulationProcess(TestPlan.QLearning(e_greedy=0.9, learning_rate=1, discount_factor=0.5)),
+                         #SimulationProcess(TestPlan.QLearning())
+                         #SimulationProcess(TestPlan.SARSAAlgorithm())
                          ])
 
     env.start()
