@@ -3,7 +3,7 @@
 from math import exp
 import datetime
 from generate_data import DataGenerator
-from learning_alg import StandardLearning, QLearning
+from learning_alg import StandardLearning, QLearning, SARSAAlgorithm
 
 
 class TestSkeleton:
@@ -41,5 +41,9 @@ class TestPlan:
 
         learning_module = QLearning()
 
-
+    class SARSAAlgorithm(TestSkeleton):
+        def __init__(self, e_greedy=0.5, learning_rate=.5, discount_factor=.5):
+            TestSkeleton.__init__(self)
+            self.learning_module = SARSAAlgorithm(e_greedy=e_greedy, learning_rate=learning_rate,
+                                             discount_factor=discount_factor)
 

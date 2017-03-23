@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 import logging
+import matplotlib
+matplotlib.use('TkAgg')
 from symulator import System
 import matplotlib.pyplot as plt
 from test_plan import TestPlan
@@ -109,10 +111,12 @@ class MultipleTests:
 
     def display_results(self, plots):
         plt.figure(1)
+        plt.rc('text', usetex=True)
+        plt.rc('font', family='serif', size=12)
         line_style = '.-'
         plot_line_colors = ['r', 'b', 'g', 'k', 'm', 'c']
-        plot_layout = {'delays': ['epoch', 'average_delay', None, 'epoch', 'average delays [s]'],
-                       'power_left': ['epoch', 'power_left', None, 'epoch', 'normalized power left']
+        plot_layout = {'delays': ['epoch', 'average_delay', None, 'epoch', r'average delays [s]'],
+                       'power_left': ['epoch', 'power_left', None, 'epoch', r'normalized power left']
                        }
         for i, p in enumerate(plots):
             plt.subplot(len(plots)*100 + 11 + i)
@@ -128,6 +132,7 @@ class MultipleTests:
             plt.grid(True)
         plt.savefig("reward_function.png")
         plt.show()
+        # input()
 
 
 if __name__ == "__main__":
@@ -158,9 +163,10 @@ if __name__ == "__main__":
     #                      ])
 
     # Best
-    env = MultipleTests([SimulationProcess(TestPlan.StandardTest(e_greedy=0.9)),
-                         SimulationProcess(TestPlan.QLearning(e_greedy=0.9, learning_rate=1, discount_factor=0.5)),
-                         SimulationProcess(TestPlan.QLearning())
+    env = MultipleTests([SimulationProcess(TestPlan.StandardTest(e_greedy=1)),
+                         SimulationProcess(TestPlan.QLearning(e_greedy=1, learning_rate=1, discount_factor=0.5)),
+                         SimulationProcess(TestPlan.QLearning()),
+                         SimulationProcess(TestPlan.SARSAAlgorithm(e_greedy=1, learning_rate=1, discount_factor=0.5))
                          ])
 
     env.start()
