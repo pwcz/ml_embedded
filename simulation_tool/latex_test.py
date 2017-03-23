@@ -1,4 +1,5 @@
 import matplotlib
+matplotlib.use('TkAgg')
 matplotlib.rcParams['text.usetex'] = True
 matplotlib.rcParams['text.latex.unicode'] = True
 import pylab as plt
@@ -13,3 +14,4 @@ print(string)
 fig = plt.figure(figsize=(3,1))
 fig.text(0.1, 0.5, string, size=24, va='center')
 fig.show()
+input()

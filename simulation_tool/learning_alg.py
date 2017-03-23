@@ -27,8 +27,7 @@ class StandardLearning:
                                                            (reward - self.knowledge[self.current_state, self.action])
 
     def __str__(self):
-        return "RL: e-greedy (e " \
-               "= " + str(self.e_greedy) + ")"
+        return r"RL: e-greedy (e = " + str(self.e_greedy) + ")"
 
 
 class SARSAAlgorithm:
@@ -39,8 +38,8 @@ class SARSAAlgorithm:
         self.lr = learning_rate
         self.y = discount_factor
         self.e_greedy = e_greedy
-        # self.q_table = np.zeros([self.states_num, self.actions.size])
-        self.q_table = np.full([self.states_num, self.actions.size], -24*60)
+        self.q_table = np.zeros([self.states_num, self.actions.size])
+        # self.q_table = np.full([self.states_num, self.actions.size], -24*60)
         # self.q_table.fill(-np.inf)
         self.current_state = None
         self.action = 0
@@ -49,9 +48,7 @@ class SARSAAlgorithm:
     def choose_action(self, state):
         self.prev_action = self.action
         if np.random.random() > self.e_greedy:
-            result = np.where(self.q_table[state, :] == np.random.choice(self.q_table[state, :]))
-            # print(result)
-            self.action = [0][0]
+            self.action = np.where(self.q_table[state, :] == np.random.choice(self.q_table[state, :]))[0][0]
         else:
             self.action = np.argmax(self.q_table[state, :])
         self.current_state = state
@@ -63,7 +60,8 @@ class SARSAAlgorithm:
         self.q_table[self.current_state, self.action] += delta
 
     def __str__(self):
-        return "SARSA ($\\varepsilon$=" + str(self.e_greedy) + ", $\\alpha$=" + str(self.lr) + ",$\\gamma$=" + str(self.y) + ")"
+        return r"SARSA ($\varepsilon$=" + str(self.e_greedy) + r", $\alpha$=" + str(self.lr) + r",$\gamma$=" + \
+               str(self.y) + ")"
 
 
 class QLearning:
@@ -92,7 +90,7 @@ class QLearning:
         self.q_table[self.current_state, self.action] += delta
 
     def __str__(self):
-        return "Q-Learning (\varepsilon=" + str(self.e_greedy) + ", \alpha=" + str(self.lr) + ",\gamma=" + str(self.y) \
-               + ")"
+        return r"Q-Learning ($\varepsilon$=" + str(self.e_greedy) + r", $\alpha=$" + str(self.lr) + r",$\gamma$=" + \
+               str(self.y) + ")"
 
     update_knowledge = update_q_table
