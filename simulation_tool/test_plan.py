@@ -12,7 +12,8 @@ class TestSkeleton:
         self.end_time = datetime.datetime(2017, 1, 3, 0, 0)
         self.time_delta = datetime.timedelta(seconds=1200)
         self.time_delta_sym = datetime.timedelta(seconds=1)
-        self.data_generator = DataGenerator(_delta_seconds=1200, _data_schema_type='1t')
+        self.data_generator = DataGenerator(_delta_seconds=1200, _data_schema_type='1t', _noise_schema='1t',
+                                            _with_noise=True)
         self.epoch_start = 1
         self.epoch_number = 100
         self.epoch_stop = 100
@@ -45,5 +46,5 @@ class TestPlan:
         def __init__(self, e_greedy=0.5, learning_rate=.5, discount_factor=.5):
             TestSkeleton.__init__(self)
             self.learning_module = SARSAAlgorithm(e_greedy=e_greedy, learning_rate=learning_rate,
-                                             discount_factor=discount_factor)
+                                                  discount_factor=discount_factor)
 

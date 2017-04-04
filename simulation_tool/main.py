@@ -26,6 +26,13 @@ class SimulationProcess:
         self.start_power = _test_plan.start_power
         self.get_new_test_data_for_each_epoch = _test_plan.get_new_test_data_for_each_epoch
         self.legend = _test_plan.get_legend()
+        self.epoch_data = None
+
+    def start_simulation(self):
+        """
+        Function for starting simulation
+        """
+        # prepare data
         self.epoch_data = {
             'average_delay': [],
             'power_left': [],
@@ -33,10 +40,6 @@ class SimulationProcess:
             'epoch': []
         }
 
-    def start_simulation(self):
-        """
-        Function for starting simulation
-        """
         # get training data
         sim_start = timer()
         training_data_gold = self.training_data_generator.get_train_data()
@@ -78,17 +81,17 @@ class SimulationProcess:
             avg_delay = sum(data_record['delays_data'])/len(data_record['delays_data'])
             norm_power_left = float(embedded.power_left)/float(self.start_power)
             self.epoch_data['average_delay'] .append(avg_delay)
-            self.epoch_data['power_left'].append(norm_power_left)
+            self.epoch_data['power_left'].append(1 - norm_power_left)
             self.epoch_data['epoch'].append(epoch)
             logging.info("Epoch " + '{:3}'.format(epoch) + " | Time: " + '{:05.2f}'.format(end - start) + " s" +
-                         " | Avg_delay = " + '{:5.2f}'.format(avg_delay) + " s | Norm. power left = " +
-                         '{:03.3f}'.format(norm_power_left))
+                         " | Avg_delay = " + '{:5.2f}'.format(avg_delay) + " s | Norm. power consumption = " +
+                         '{:03.3f}'.format(1 - norm_power_left))
         logging.info("LEARNING FINISHED! Elapsed time: " + '{:3.3f}'.format(timer()-sim_start))
 
     def display_epoch_data(self, plots):
         plt.figure(1)
         plot_layout = {'delays': ['epoch', 'average_delay', 'r--', 'epoch', 'average delays [s]'],
-                       'power_left': ['epoch', 'power_left', 'bs', 'epoch', 'normalized power left']
+                       'power_left': ['epoch', 'power_left', 'bs', 'epoch', 'normalized power consumption']
                        }
         for i, p in enumerate(plots):
             plt.subplot(len(plots)*100 + 11 + i)
@@ -101,13 +104,25 @@ class SimulationProcess:
 
 
 class MultipleTests:
-    def __init__(self, simulation_systems):
+    def __init__(self, simulation_systems, test_count=1):
         self.sim_sys = simulation_systems
+        self.test_count = test_count
+        self.plot_layout = {'delays': ['epoch', 'average_delay', None, 'epoch', r'average delays [s]'],
+                            'power_left': ['epoch', 'power_left', None, 'epoch', r'normalized power consumption']
+                            }
+        self.result = [[{x: []} for x in self.plot_layout]] * test_count
+        # self.plot_data =
 
     def start(self):
-        for sim in self.sim_sys:
+        for k, sim in enumerate(self.sim_sys):
             # print(sim)
-            sim.start_simulation()
+            for m in range(self.test_count):
+                sim.start_simulation()
+                for l in self.plot_layout:
+                    self.result[k][l].append(sim.epoch_data[l])
+
+    def prepare_data(self):
+        pass
 
     def display_results(self, plots):
         plt.figure(1)
@@ -115,20 +130,17 @@ class MultipleTests:
         plt.rc('font', family='serif', size=12)
         line_style = '.-'
         plot_line_colors = ['r', 'b', 'g', 'k', 'm', 'c']
-        plot_layout = {'delays': ['epoch', 'average_delay', None, 'epoch', r'average delays [s]'],
-                       'power_left': ['epoch', 'power_left', None, 'epoch', r'normalized power left']
-                       }
         for i, p in enumerate(plots):
             plt.subplot(len(plots)*100 + 11 + i)
             legend = []
             for j, data in enumerate(self.sim_sys):
-                plt.plot(data.epoch_data[plot_layout[p][0]], data.epoch_data[plot_layout[p][1]], plot_line_colors[j] +
+                plt.plot(data.epoch_data[self.plot_layout[p][0]], data.epoch_data[self.plot_layout[p][1]], plot_line_colors[j] +
                          line_style)
                 legend.append(data.legend)
 
             plt.legend(legend, loc='best')
-            plt.xlabel(plot_layout[p][3])
-            plt.ylabel(plot_layout[p][4])
+            plt.xlabel(self.plot_layout[p][3])
+            plt.ylabel(self.plot_layout[p][4])
             plt.grid(True)
         plt.savefig("reward_function.png")
         plt.show()
@@ -165,6 +177,7 @@ if __name__ == "__main__":
     # Best
     env = MultipleTests([SimulationProcess(TestPlan.StandardTest(e_greedy=1)),
                          SimulationProcess(TestPlan.QLearning(e_greedy=1, learning_rate=1, discount_factor=0.5)),
+                         SimulationProcess(TestPlan.QLearning(e_greedy=0, learning_rate=1, discount_factor=0.5)),
                          SimulationProcess(TestPlan.QLearning()),
                          SimulationProcess(TestPlan.SARSAAlgorithm(e_greedy=1, learning_rate=1, discount_factor=0.5))
                          ])

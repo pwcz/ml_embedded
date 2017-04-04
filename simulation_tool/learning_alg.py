@@ -14,7 +14,7 @@ class StandardLearning:
         self.action = None
 
     def choose_action(self, state):
-        if np.random.random() < self.e_greedy:
+        if np.random.random() < 1 - self.e_greedy:
             self.action = np.argmax(self.knowledge[state, :])
         else:
             self.action = np.where(self.knowledge[state, :] == np.random.choice(self.knowledge[state, :]))[0][0]
@@ -47,7 +47,7 @@ class SARSAAlgorithm:
 
     def choose_action(self, state):
         self.prev_action = self.action
-        if np.random.random() > self.e_greedy:
+        if np.random.random() > 1 - self.e_greedy:
             self.action = np.where(self.q_table[state, :] == np.random.choice(self.q_table[state, :]))[0][0]
         else:
             self.action = np.argmax(self.q_table[state, :])
@@ -77,7 +77,7 @@ class QLearning:
         self.action = None
 
     def choose_action(self, state):
-        if np.random.random() > self.e_greedy:
+        if np.random.random() > 1 - self.e_greedy:
             self.action = np.where(self.q_table[state, :] == np.random.choice(self.q_table[state, :]))[0][0]
         else:
             self.action = np.argmax(self.q_table[state, :])

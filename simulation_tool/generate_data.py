@@ -4,19 +4,32 @@ from itertools import repeat
 import numpy as np
 import datetime
 from random import randrange
+import matplotlib
+matplotlib.use('TkAgg')
+matplotlib.rcParams['errorbar.capsize'] = 3
+matplotlib.rcParams['grid.linestyle'] = ':'
 import matplotlib.pyplot as plt
 
 
 class DataGenerator:
-    def __init__(self, _delta_seconds=1200, _data_schema_type='1t'):
+    def __init__(self, _delta_seconds=1200, _data_schema_type='1t', _noise_schema='1t', _with_noise=False):
         self.delta_seconds = _delta_seconds
         self.SECONDS_IN_DAY = 24*60*60
         self.resolution = self.SECONDS_IN_DAY/self.delta_seconds
         self.data_schema_type = _data_schema_type
+        self.noise_schema_type = _noise_schema
+        self.with_noise = _with_noise
         self.data_schema = {'1t': [(6, 1, 3), (7, 0.5, 3), (12, 3, 5), (15.5, 1, 7), (19, 1, 2), (21, 1, 3)]}
+        self.noise_schema = {'1t': [(2, 3, 1), (6.5, 1.5, 2), (10, 2, 1), (14, 2, 3), (17.5, 1.5, 1), (20, 1, 2),
+                                    (22.5, 1.5, 1)]}
 
     def gaussian(self, _x, _mu, _sig, _amp):
         return _amp*np.exp(-np.power(_x - _mu, 2.) / (2 * np.power(_sig, 2.)))
+
+    def square_window(self, _x, _mu, _width, _amp):
+        _y = np.zeros(_x.shape[0])
+        _y[np.where(abs(_x - _mu) < _width)] = _amp
+        return _y
 
     def time_range(self, _start_time, _end_time, _time_delta):
         _current_time = _start_time
@@ -32,14 +45,36 @@ class DataGenerator:
             time_table.append(_start_time + datetime.timedelta(seconds=randrange(_time_delta.seconds)))
         return sorted(time_table)
 
+    def generate_data_noise(self):
+        data = np.linspace(0, 24, self.resolution)
+        data_noise = np.zeros(int(self.resolution), dtype=np.int)
+        working_day = self.noise_schema[self.noise_schema_type]
+
+        for mu, sig, amp in working_day:
+            data_noise += self.square_window(data, mu, sig, amp).astype(int)
+
+        return [data, data_noise]
+
     def generate_data_actions(self):
         data = np.linspace(0, 24, self.resolution)
         data_actions = np.zeros(int(self.resolution), dtype=np.int)
         working_day = self.data_schema[self.data_schema_type]
+        noise = self.generate_data_noise()
 
         for mu, sig, amp in working_day:
             data_actions += self.gaussian(data, mu, sig, amp).astype(int)
 
+        if not self.with_noise:
+            return [data, data_actions]
+
+        for i, n in enumerate(noise[1]):
+            if n == 0:
+                continue
+            r = np.random.randint(low=-n, high=n+1, dtype=np.int)
+            if data_actions[i] + r >= 0:
+                data_actions[i] += r
+            else:
+                data_actions[i] = 0
         return [data, data_actions]
 
     def get_train_data(self):
@@ -56,10 +91,19 @@ class DataGenerator:
 
 
 if __name__ == "__main__":
-    test = DataGenerator(_delta_seconds=1200, _data_schema_type='1t').generate_data_actions()
-    plt.stem(test[0], test[1])
+    module = DataGenerator(_delta_seconds=1200, _data_schema_type='1t')
+    test = module.generate_data_actions()
+    _noise = module.generate_data_noise()
+    # plt.stem(test[0], test[1])
+    module.with_noise = True
+    noised_data = module.generate_data_actions()
+    plt.errorbar(test[0], test[1], yerr=_noise[1], linestyle='dotted',fmt='o',ecolor='g', capthick=2, marker='d', markersize=1 )
+    plt.plot(test[0], noised_data[1], 'ro')
+    # plt.errorbar(test[0], test[1], fmt='ro', label="data", xerr=0.75, yerr=noise[1], ecolor='black')
     plt.xlabel("discrete time")
     plt.ylabel("users in time window")
+    plt.xlim([0, 24])
+    plt.grid()
     plt.savefig("training_data.png")
     plt.show()
 
