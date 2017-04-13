@@ -3,7 +3,9 @@
 from itertools import repeat
 import numpy as np
 import datetime
+import time
 from random import randrange
+import traceback
 import matplotlib
 matplotlib.use('TkAgg')
 matplotlib.rcParams['errorbar.capsize'] = 3
@@ -12,7 +14,7 @@ import matplotlib.pyplot as plt
 
 
 class DataGenerator:
-    def __init__(self, _delta_seconds=1200, _data_schema_type='1t', _noise_schema='1t', _with_noise=False):
+    def __init__(self, _delta_seconds=1200, _data_schema_type='1t', _noise_schema='1t', _with_noise=True):
         self.delta_seconds = _delta_seconds
         self.SECONDS_IN_DAY = 24*60*60
         self.resolution = self.SECONDS_IN_DAY/self.delta_seconds
@@ -22,6 +24,7 @@ class DataGenerator:
         self.data_schema = {'1t': [(6, 1, 3), (7, 0.5, 3), (12, 3, 5), (15.5, 1, 7), (19, 1, 2), (21, 1, 3)]}
         self.noise_schema = {'1t': [(2, 3, 1), (6.5, 1.5, 2), (10, 2, 1), (14, 2, 3), (17.5, 1.5, 1), (20, 1, 2),
                                     (22.5, 1.5, 1)]}
+        self.prev_data_actions = []
 
     def gaussian(self, _x, _mu, _sig, _amp):
         return _amp*np.exp(-np.power(_x - _mu, 2.) / (2 * np.power(_sig, 2.)))
@@ -56,6 +59,7 @@ class DataGenerator:
         return [data, data_noise]
 
     def generate_data_actions(self):
+        # np.random.seed(int(time.time()))
         data = np.linspace(0, 24, self.resolution)
         data_actions = np.zeros(int(self.resolution), dtype=np.int)
         working_day = self.data_schema[self.data_schema_type]
@@ -67,17 +71,22 @@ class DataGenerator:
         if not self.with_noise:
             return [data, data_actions]
 
-        for i, n in enumerate(noise[1]):
-            if n == 0:
-                continue
-            r = np.random.randint(low=-n, high=n+1, dtype=np.int)
-            if data_actions[i] + r >= 0:
-                data_actions[i] += r
-            else:
-                data_actions[i] = 0
+        while True:
+            for i, n in enumerate(noise[1]):
+                if n == 0:
+                    continue
+                r = np.random.randint(low=-n, high=n+1, dtype=np.int)
+                if data_actions[i] + r >= 0:
+                    data_actions[i] += r
+                else:
+                    data_actions[i] = 0
+            if not np.array_equal(self.prev_data_actions, data_actions):
+                break
+        self.prev_data_actions = data_actions
         return [data, data_actions]
 
     def get_train_data(self):
+        # np.random.seed(int(time.time()))
         data_actions = self.generate_data_actions()[1]
         start_time = datetime.datetime(2017, 1, 2, 0, 0)
         end_time = datetime.datetime(2017, 1, 3, 0, 0)
@@ -91,15 +100,14 @@ class DataGenerator:
 
 
 if __name__ == "__main__":
-    module = DataGenerator(_delta_seconds=1200, _data_schema_type='1t')
+    module = DataGenerator(_with_noise=False)
     test = module.generate_data_actions()
     _noise = module.generate_data_noise()
-    # plt.stem(test[0], test[1])
     module.with_noise = True
     noised_data = module.generate_data_actions()
-    plt.errorbar(test[0], test[1], yerr=_noise[1], linestyle='dotted',fmt='o',ecolor='g', capthick=2, marker='d', markersize=1 )
+    plt.errorbar(test[0], test[1], yerr=_noise[1], linestyle='dotted', fmt='o', ecolor='g', capthick=2, marker='d',
+                 markersize=1)
     plt.plot(test[0], noised_data[1], 'ro')
-    # plt.errorbar(test[0], test[1], fmt='ro', label="data", xerr=0.75, yerr=noise[1], ecolor='black')
     plt.xlabel("discrete time")
     plt.ylabel("users in time window")
     plt.xlim([0, 24])

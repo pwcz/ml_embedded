@@ -15,8 +15,8 @@ class TestSkeleton:
         self.data_generator = DataGenerator(_delta_seconds=1200, _data_schema_type='1t', _noise_schema='1t',
                                             _with_noise=True)
         self.epoch_start = 1
-        self.epoch_number = 100
-        self.epoch_stop = 100
+        self.epoch_number = 50
+        self.epoch_stop = 50
         self.epoch_step = 1
         self.start_power = 24*3600
         self.get_new_test_data_for_each_epoch = True

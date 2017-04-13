@@ -3,13 +3,17 @@
 import logging
 import matplotlib
 matplotlib.use('TkAgg')
+from copy import deepcopy
 from symulator import System
 import matplotlib.pyplot as plt
 from test_plan import TestPlan
 from timeit import default_timer as timer
 from copy import deepcopy
+import numpy as np
 
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+
+
+logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.ERROR)
 
 
 class SimulationProcess:
@@ -60,6 +64,7 @@ class SimulationProcess:
             # training data
             if self.get_new_test_data_for_each_epoch:
                 training_data = self.training_data_generator.get_train_data()
+                # print(training_data)
             else:
                 training_data = deepcopy(training_data_gold)
             next_action = training_data.pop()
@@ -87,10 +92,14 @@ class SimulationProcess:
                          " | Avg_delay = " + '{:5.2f}'.format(avg_delay) + " s | Norm. power consumption = " +
                          '{:03.3f}'.format(1 - norm_power_left))
         logging.info("LEARNING FINISHED! Elapsed time: " + '{:3.3f}'.format(timer()-sim_start))
+        for i, qv in enumerate(embedded.learning_a.q_table):
+            print(qv)
+            print(np.argmax(qv))
+        # print(embedded.learning_a.q_table)
 
     def display_epoch_data(self, plots):
         plt.figure(1)
-        plot_layout = {'delays': ['epoch', 'average_delay', 'r--', 'epoch', 'average delays [s]'],
+        plot_layout = {'average_delay': ['epoch', 'average_delay', 'r--', 'epoch', 'average delays [s]'],
                        'power_left': ['epoch', 'power_left', 'bs', 'epoch', 'normalized power consumption']
                        }
         for i, p in enumerate(plots):
@@ -107,40 +116,64 @@ class MultipleTests:
     def __init__(self, simulation_systems, test_count=1):
         self.sim_sys = simulation_systems
         self.test_count = test_count
-        self.plot_layout = {'delays': ['epoch', 'average_delay', None, 'epoch', r'average delays [s]'],
-                            'power_left': ['epoch', 'power_left', None, 'epoch', r'normalized power consumption']
-                            }
-        self.result = [[{x: []} for x in self.plot_layout]] * test_count
-        # self.plot_data =
+        self.plot_layout = ['average_delay', 'power_left']
+        self.sim_numer = len(simulation_systems)
+        self.result = [[{} for _ in range(self.test_count)] for _ in range(self.sim_numer)]
+        self.plot_data = None
 
     def start(self):
         for k, sim in enumerate(self.sim_sys):
-            # print(sim)
             for m in range(self.test_count):
                 sim.start_simulation()
-                for l in self.plot_layout:
-                    self.result[k][l].append(sim.epoch_data[l])
+                print(sim.epoch_data['average_delay'])
+                for j in self.plot_layout:
+                    self.result[k][m][j] = deepcopy(sim.epoch_data[j])
+        self.plot_data = self.prepare_data()
 
     def prepare_data(self):
-        pass
+        print(self.result)
+        epoch_number = len(self.result[0][0][self.plot_layout[0]])
+        summary_result = {x: np.empty([self.sim_numer, 3, epoch_number]) for x in self.plot_layout}
+        for m, test in np.ndenumerate(self.result):
+            for epoch in range(epoch_number):
+                dd = {x: [] for x in self.plot_layout}
+                for repeat_num in range(self.test_count):
+                    for data_taken in self.plot_layout:
+                        dd[data_taken].append(self.result[m[0]][repeat_num][data_taken][epoch])
+                for b in self.plot_layout:
+                    summary_result[b][m[0]][0][epoch] = min(dd[b])
+                    summary_result[b][m[0]][1][epoch] = np.mean(dd[b])
+                    summary_result[b][m[0]][2][epoch] = max(dd[b])
+
+        for b in self.plot_layout:
+            print(b)
+            print(summary_result[b])
+
+            np.save(b+'.txt', summary_result[b])
+
+        return summary_result
 
     def display_results(self, plots):
         plt.figure(1)
-        plt.rc('text', usetex=True)
+        # plt.rc('text', usetex=True)
         plt.rc('font', family='serif', size=12)
         line_style = '.-'
         plot_line_colors = ['r', 'b', 'g', 'k', 'm', 'c']
+        fill_colors = ['red', 'blue', 'green', 'black', 'magenta', 'cyan']
+        labels = {'average_delay': ['epoch', 'average delays [s]'],
+                  'power_left': ['epoch', 'normalized power consumption']}
         for i, p in enumerate(plots):
             plt.subplot(len(plots)*100 + 11 + i)
             legend = []
-            for j, data in enumerate(self.sim_sys):
-                plt.plot(data.epoch_data[self.plot_layout[p][0]], data.epoch_data[self.plot_layout[p][1]], plot_line_colors[j] +
-                         line_style)
-                legend.append(data.legend)
+            for j in range(self.sim_numer):
+                plt.plot(self.sim_sys[0].epoch_data['epoch'], self.plot_data[p][j][1], plot_line_colors[j] + line_style)
+                plt.fill_between(self.sim_sys[0].epoch_data['epoch'], self.plot_data[p][j][0], self.plot_data[p][j][2],
+                                 alpha=0.25, facecolor=fill_colors[j])
+                legend.append(self.sim_sys[j].legend)
 
             plt.legend(legend, loc='best')
-            plt.xlabel(self.plot_layout[p][3])
-            plt.ylabel(self.plot_layout[p][4])
+            plt.xlabel(labels[p][0])
+            plt.ylabel(labels[p][1])
             plt.grid(True)
         plt.savefig("reward_function.png")
         plt.show()
@@ -175,12 +208,11 @@ if __name__ == "__main__":
     #                      ])
 
     # Best
-    env = MultipleTests([SimulationProcess(TestPlan.StandardTest(e_greedy=1)),
-                         SimulationProcess(TestPlan.QLearning(e_greedy=1, learning_rate=1, discount_factor=0.5)),
-                         SimulationProcess(TestPlan.QLearning(e_greedy=0, learning_rate=1, discount_factor=0.5)),
-                         SimulationProcess(TestPlan.QLearning()),
-                         SimulationProcess(TestPlan.SARSAAlgorithm(e_greedy=1, learning_rate=1, discount_factor=0.5))
-                         ])
+    env = MultipleTests([SimulationProcess(TestPlan.QLearning(e_greedy=.5, learning_rate=1, discount_factor=0.5)),
+                         SimulationProcess(TestPlan.QLearning(e_greedy=.7, learning_rate=1, discount_factor=0.5))]
+                        , test_count=30)
+    # env = MultipleTests([SimulationProcess(TestPlan.StandardTest(e_greedy=1))], test_count=3)
 
     env.start()
-    env.display_results(['delays', 'power_left'])
+
+    env.display_results(['average_delay', 'power_left'])

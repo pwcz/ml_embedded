@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 import datetime
 import numpy as np
-
+from copy import deepcopy
 
 class System:
     def __init__(self, _start_time, start_power=86400, test_plan=None):
@@ -16,12 +16,13 @@ class System:
         self.reward = 0
         self.time_to_read_input = 0
         self.current_clock = 100
-        self.learning_a = test_plan.learning_module
+        self.learning_a = deepcopy(test_plan.learning_module)
         self.first_start = True
+        self.ml_parameters = {'d_penalty': 150, 'd_award': 150, 's_penalty': 1, 'delay_threshold': 7.5}
 
     def simulation_step(self, _current_time):
         if self.time_to_read_input <= 0:
-            self.reward -= 1
+            self.reward -= self.ml_parameters['s_penalty']
             self.power_left -= 1
             self.time_to_read_input = self.current_clock
         else:
@@ -45,7 +46,12 @@ class System:
         self.power_left = self.start_power
 
     def event_action(self, _current_time):
-        self.reward += 21
+        self.reward -= self.ml_parameters['s_penalty']
+        if self.time_to_read_input > self.ml_parameters['delay_threshold']:
+            self.reward -= self.ml_parameters['d_penalty']
+        else:
+            self.reward += self.ml_parameters['d_award']
+
         self.reward -= self.time_to_read_input
         return self.time_to_read_input
 
