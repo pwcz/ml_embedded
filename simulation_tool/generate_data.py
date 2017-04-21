@@ -11,6 +11,7 @@ matplotlib.use('TkAgg')
 matplotlib.rcParams['errorbar.capsize'] = 3
 matplotlib.rcParams['grid.linestyle'] = ':'
 import matplotlib.pyplot as plt
+import pandas as pd
 
 
 class DataGenerator:
@@ -108,9 +109,11 @@ if __name__ == "__main__":
     plt.errorbar(test[0], test[1], yerr=_noise[1], linestyle='dotted', fmt='o', ecolor='g', capthick=2, marker='d',
                  markersize=1)
     plt.plot(test[0], noised_data[1], 'ro')
-    plt.xlabel("discrete time")
-    plt.ylabel("users in time window")
+    plt.xlabel("czas [h]")
+    plt.ylabel("Ilość użytkowników")
     plt.xlim([0, 24])
+    plt.ylim([0,max(test[1]+_noise[1])+1])
+    plt.xticks(np.arange(0,25,2))
     plt.grid()
     plt.savefig("training_data.png")
     plt.show()

@@ -141,9 +141,11 @@ class MultipleTests:
                     for data_taken in self.plot_layout:
                         dd[data_taken].append(self.result[m[0]][repeat_num][data_taken][epoch])
                 for b in self.plot_layout:
-                    summary_result[b][m[0]][0][epoch] = min(dd[b])
-                    summary_result[b][m[0]][1][epoch] = np.mean(dd[b])
-                    summary_result[b][m[0]][2][epoch] = max(dd[b])
+                    standard_deviation = np.std(dd[b])
+                    mean = np.mean(dd[b])
+                    summary_result[b][m[0]][0][epoch] = mean - standard_deviation
+                    summary_result[b][m[0]][1][epoch] = mean
+                    summary_result[b][m[0]][2][epoch] = mean + standard_deviation
 
         for b in self.plot_layout:
             print(b)
@@ -210,7 +212,7 @@ if __name__ == "__main__":
     # Best
     env = MultipleTests([SimulationProcess(TestPlan.QLearning(e_greedy=.5, learning_rate=1, discount_factor=0.5)),
                          SimulationProcess(TestPlan.QLearning(e_greedy=.7, learning_rate=1, discount_factor=0.5))]
-                        , test_count=30)
+                        , test_count=5)
     # env = MultipleTests([SimulationProcess(TestPlan.StandardTest(e_greedy=1))], test_count=3)
 
     env.start()
