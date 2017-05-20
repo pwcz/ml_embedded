@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-import logging
 import matplotlib
 matplotlib.use('TkAgg')
-from copy import deepcopy
-from symulator import System
+matplotlib.rcParams.update({'font.size': 22})
+matplotlib.rc('xtick', labelsize=12)
+matplotlib.rc('ytick', labelsize=12)
 import matplotlib.pyplot as plt
+import logging
+from symulator import System
 from test_plan import TestPlan
 from timeit import default_timer as timer
 from copy import deepcopy
 import numpy as np
+import concurrent.futures
 
 
-
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.ERROR)
+logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 
 
 class SimulationProcess:
@@ -30,6 +32,7 @@ class SimulationProcess:
         self.start_power = _test_plan.start_power
         self.get_new_test_data_for_each_epoch = _test_plan.get_new_test_data_for_each_epoch
         self.legend = _test_plan.get_legend()
+        self.logger_info = _test_plan.get_info()
         self.epoch_data = None
 
     def start_simulation(self):
@@ -84,23 +87,24 @@ class SimulationProcess:
             # collecting data
             end = timer()
             avg_delay = sum(data_record['delays_data'])/len(data_record['delays_data'])
-            norm_power_left = float(embedded.power_left)/float(self.start_power)
+            norm_power_left = float(embedded.power_left)  # /float(self.start_power)
             self.epoch_data['average_delay'] .append(avg_delay)
-            self.epoch_data['power_left'].append(1 - norm_power_left)
+            self.epoch_data['power_left'].append(norm_power_left)
             self.epoch_data['epoch'].append(epoch)
-            logging.info("Epoch " + '{:3}'.format(epoch) + " | Time: " + '{:05.2f}'.format(end - start) + " s" +
-                         " | Avg_delay = " + '{:5.2f}'.format(avg_delay) + " s | Norm. power consumption = " +
-                         '{:03.3f}'.format(1 - norm_power_left))
-        logging.info("LEARNING FINISHED! Elapsed time: " + '{:3.3f}'.format(timer()-sim_start))
-        for i, qv in enumerate(embedded.learning_a.q_table):
-            print(qv)
-            print(np.argmax(qv))
-        # print(embedded.learning_a.q_table)
+            logging.debug("Epoch " + '{:3}'.format(epoch) + " | Time: " + '{:05.2f}'.format(end - start) + " s" +
+                          " | Avg_delay = " + '{:5.2f}'.format(avg_delay) + " s | Norm. power consumption = " +
+                          '{:03.3f}'.format(1 - norm_power_left))
+        # logging.info("LEARNING FINISHED! Elapsed time: " + '{:3.3f}'.format(timer()-sim_start))
+        logging.info("| Epoch number: " + str(len(self.epoch_data['epoch'])) + " | " + self.logger_info + " | Time: " +
+                     '{:05.2f} s'.format(end - start) + " | avg. delay: " +
+                     '{:05.2f}'.format(np.mean(self.epoch_data['average_delay'][-20:])) + " | avg. power consum.: " +
+                     '{:05.2f}'.format(np.mean(self.epoch_data['power_left'][-20:])) + " |"
+                     )
 
     def display_epoch_data(self, plots):
         plt.figure(1)
-        plot_layout = {'average_delay': ['epoch', 'average_delay', 'r--', 'epoch', 'average delays [s]'],
-                       'power_left': ['epoch', 'power_left', 'bs', 'epoch', 'normalized power consumption']
+        plot_layout = {'average_delay': ['epoch', 'average_delay', 'r--', 'epoka', 'średnie opóźnienia [s]'],
+                       'power_left': ['epoch', 'power_left', 'bs', 'epoch', 'epoka. zużycie energii']
                        }
         for i, p in enumerate(plots):
             plt.subplot(len(plots)*100 + 11 + i)
@@ -125,13 +129,27 @@ class MultipleTests:
         for k, sim in enumerate(self.sim_sys):
             for m in range(self.test_count):
                 sim.start_simulation()
-                print(sim.epoch_data['average_delay'])
+                # print(sim.epoch_data['average_delay'])
                 for j in self.plot_layout:
                     self.result[k][m][j] = deepcopy(sim.epoch_data[j])
         self.plot_data = self.prepare_data()
 
+    def parallel_start(self):
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            result = executor.map(self.get_result_data, self.sim_sys)
+        for i, d in enumerate(result):
+            self.result[i] = d
+
+    def get_result_data(self, _sim):
+        data = []
+        for m in range(self.test_count):
+            _sim.start_simulation()
+            for j in self.plot_layout:
+                data[m][j] = deepcopy(_sim.epoch_data[j])
+        return data
+
     def prepare_data(self):
-        print(self.result)
+        # print(self.result)
         epoch_number = len(self.result[0][0][self.plot_layout[0]])
         summary_result = {x: np.empty([self.sim_numer, 3, epoch_number]) for x in self.plot_layout}
         for m, test in np.ndenumerate(self.result):
@@ -148,8 +166,8 @@ class MultipleTests:
                     summary_result[b][m[0]][2][epoch] = mean + standard_deviation
 
         for b in self.plot_layout:
-            print(b)
-            print(summary_result[b])
+            # print(b)
+            # print(summary_result[b])
 
             np.save(b+'.txt', summary_result[b])
 
@@ -157,13 +175,12 @@ class MultipleTests:
 
     def display_results(self, plots):
         plt.figure(1)
-        # plt.rc('text', usetex=True)
         plt.rc('font', family='serif', size=12)
         line_style = '.-'
         plot_line_colors = ['r', 'b', 'g', 'k', 'm', 'c']
         fill_colors = ['red', 'blue', 'green', 'black', 'magenta', 'cyan']
-        labels = {'average_delay': ['epoch', 'average delays [s]'],
-                  'power_left': ['epoch', 'normalized power consumption']}
+        labels = {'average_delay': ['epoka', 'średnie opóźnienia [s]'],
+                  'power_left': ['epoka', 'unorm. zużycie energii']}
         for i, p in enumerate(plots):
             plt.subplot(len(plots)*100 + 11 + i)
             legend = []
@@ -210,9 +227,10 @@ if __name__ == "__main__":
     #                      ])
 
     # Best
-    env = MultipleTests([SimulationProcess(TestPlan.QLearning(e_greedy=.5, learning_rate=1, discount_factor=0.5)),
-                         SimulationProcess(TestPlan.QLearning(e_greedy=.7, learning_rate=1, discount_factor=0.5))]
-                        , test_count=5)
+    env = MultipleTests([SimulationProcess(TestPlan.QLearning(e_greedy=.99, learning_rate=1, discount_factor=0.5)),
+                         # SimulationProcess(TestPlan.QLearning(e_greedy=.9, learning_rate=1, discount_factor=0.5)),
+                         SimulationProcess(TestPlan.FixedDelay(delay=7))]
+                        ,test_count=1)
     # env = MultipleTests([SimulationProcess(TestPlan.StandardTest(e_greedy=1))], test_count=3)
 
     env.start()

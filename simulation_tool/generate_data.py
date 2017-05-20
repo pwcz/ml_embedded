@@ -3,15 +3,16 @@
 from itertools import repeat
 import numpy as np
 import datetime
-import time
 from random import randrange
-import traceback
+import csv
 import matplotlib
 matplotlib.use('TkAgg')
 matplotlib.rcParams['errorbar.capsize'] = 3
 matplotlib.rcParams['grid.linestyle'] = ':'
+matplotlib.rcParams.update({'font.size': 22})
+matplotlib.rc('xtick', labelsize=12)
+matplotlib.rc('ytick', labelsize=12)
 import matplotlib.pyplot as plt
-import pandas as pd
 
 
 class DataGenerator:
@@ -110,11 +111,19 @@ if __name__ == "__main__":
                  markersize=1)
     plt.plot(test[0], noised_data[1], 'ro')
     plt.xlabel("czas [h]")
-    plt.ylabel("Ilość użytkowników")
+    plt.ylabel("liczba użytkowników")
     plt.xlim([0, 24])
-    plt.ylim([0,max(test[1]+_noise[1])+1])
-    plt.xticks(np.arange(0,25,2))
+    plt.ylim([0, max(test[1]+_noise[1])+1])
+    plt.xticks(np.arange(0, 25, 2))
     plt.grid()
     plt.savefig("training_data.png")
     plt.show()
-
+    # generate training data
+    data = []
+    for _ in range(100):
+        noised_data = module.generate_data_actions()
+        for i, x in enumerate(noised_data[1]):
+            data.append([i, x])
+    with open('learning_data.csv', 'w') as fp:
+        a = csv.writer(fp, delimiter=';')
+        a.writerows(data)

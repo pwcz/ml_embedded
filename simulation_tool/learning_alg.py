@@ -29,6 +29,9 @@ class StandardLearning:
     def __str__(self):
         return r"RL: e-greedy (e = " + str(self.e_greedy) + ")"
 
+    def logger_info(self):
+        return self.__str__()
+
 
 class SARSAAlgorithm:
     def __init__(self, actions=np.array([60, 45, 35, 30, 16, 8, 4, 2, 1]), learning_rate=.5, discount_factor=.5,
@@ -56,16 +59,19 @@ class SARSAAlgorithm:
 
     def update_knowledge(self, reward, next_state):
         delta = self.lr*(reward + self.y*self.q_table[next_state, self.action] -
-                         self.q_table[self.current_state, self.action])
+                         self.q_table[self.current_state, self.prev_action])
         self.q_table[self.current_state, self.action] += delta
 
     def __str__(self):
         return r"SARSA ($\varepsilon$=" + str(self.e_greedy) + r", $\alpha$=" + str(self.lr) + r",$\gamma$=" + \
                str(self.y) + ")"
 
+    def logger_info(self):
+        return r"SARSA (e=" + str(self.e_greedy) + r",a=" + str(self.lr) + r",y=" + str(self.y) + ")"
+
 
 class QLearning:
-    def __init__(self, actions=np.array([60, 45, 35, 30, 16, 8, 4, 2, 1]), learning_rate=.5, discount_factor=.5,
+    def __init__(self, actions=np.array([12, 10, 8, 6, 4]), learning_rate=.5, discount_factor=.5,
                  e_greedy=.5):
         self.actions = actions
         self.states_num = 72
@@ -92,5 +98,27 @@ class QLearning:
     def __str__(self):
         return r"Q-Learning ($\varepsilon$=" + str(self.e_greedy) + r", $\alpha=$" + str(self.lr) + r",$\gamma$=" + \
                str(self.y) + ")"
+
+    def logger_info(self):
+        return r"Q-Learning (e=" + str(self.e_greedy) + r",a=" + str(self.lr) + r",y=" + str(self.y) + ")"
+
+    update_knowledge = update_q_table
+
+
+class FixedDelay:
+    def __init__(self, delay=3):
+        self.const_delay = delay
+
+    def choose_action(self, *_):
+        return self.const_delay
+
+    def update_q_table(self, *_):
+        pass
+
+    def __str__(self):
+        return self.logger_info()
+
+    def logger_info(self):
+        return r"Fixed delay: " + str(self.const_delay)
 
     update_knowledge = update_q_table
