@@ -72,9 +72,9 @@ class SARSAAlgorithm:
 
 class QLearning:
     def __init__(self, actions=np.array([12, 10, 8, 6, 4]), learning_rate=.5, discount_factor=.5,
-                 e_greedy=.5):
+                 e_greedy=.5, states_number=72):
         self.actions = actions
-        self.states_num = 72
+        self.states_num = states_number
         self.lr = learning_rate
         self.y = discount_factor
         self.e_greedy = e_greedy
@@ -82,13 +82,27 @@ class QLearning:
         self.current_state = None
         self.action = None
 
-    def choose_action(self, state):
-        if np.random.random() > 1 - self.e_greedy:
-            self.action = np.where(self.q_table[state, :] == np.random.choice(self.q_table[state, :]))[0][0]
+    def choose_action(self, state, restricted_state=None):
+        if restricted_state is not None:
+            q_tab = self.q_table[state, :].copy()
+            search = [np.where(self.actions == x)[0][0] for x in restricted_state]
+            q_tab = np.delete(q_tab, np.array(search))
+            actions = self.actions.copy()
+            actions = np.delete(actions, np.array(search))
+            if np.random.random() > 1 - self.e_greedy:
+                action = np.where(q_tab == np.random.choice(q_tab))[0][0]
+            else:
+                action = np.argmax(q_tab)
+            self.current_state = state
+            self.action = self.actions[np.where(self.actions == actions[action])]
+            return actions[action]
         else:
-            self.action = np.argmax(self.q_table[state, :])
-        self.current_state = state
-        return self.actions[self.action]
+            if np.random.random() > 1 - self.e_greedy:
+                self.action = np.where(self.q_table[state, :] == np.random.choice(self.q_table[state, :]))[0][0]
+            else:
+                self.action = np.argmax(self.q_table[state, :])
+            self.current_state = state
+            return self.actions[self.action]
 
     def update_q_table(self, reward, next_state):
         delta = self.lr*(reward + self.y*np.max(self.q_table[next_state, :]) -

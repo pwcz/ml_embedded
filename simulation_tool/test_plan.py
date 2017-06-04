@@ -3,10 +3,11 @@
 import datetime
 from generate_data import DataGenerator
 from learning_alg import StandardLearning, QLearning, SARSAAlgorithm, FixedDelay
+import numpy as np
 
 
 class TestSkeleton:
-    def __init__(self):
+    def __init__(self, delay_award=150, awake_award=10, epoch=80, awake_penelty=20,delay_threshold=7.5):
         self.start_time = self.current_time = datetime.datetime(2017, 1, 2, 0, 0)
         self.end_time = datetime.datetime(2017, 1, 3, 0, 0)
         self.time_delta = datetime.timedelta(seconds=1200)
@@ -14,11 +15,16 @@ class TestSkeleton:
         self.data_generator = DataGenerator(_delta_seconds=1200, _data_schema_type='1t', _noise_schema='1t',
                                             _with_noise=True)
         self.epoch_start = 1
-        self.epoch_number = 80
-        self.epoch_stop = 80
+        self.epoch_number = epoch
+        self.epoch_stop = self.epoch_number
         self.epoch_step = 1
         self.start_power = 0
         self.get_new_test_data_for_each_epoch = True
+        self.type = "power_management"
+        self.delay_award = delay_award
+        self.awake_award = awake_award
+        self.awake_penalty = awake_penelty
+        self.delay_threshold = delay_threshold
 
     def get_legend(self):
         return str(self.learning_module)
@@ -26,9 +32,12 @@ class TestSkeleton:
     def get_info(self):
         return self.learning_module.logger_info()
 
+    def get_type(self):
+        return self.type
+
 
 class TransmissionTask:
-    def __init__(self):
+    def __init__(self, epoch_number=150):
         self.start_time = self.current_time = datetime.datetime(2017, 1, 2, 0, 0)
         self.end_time = datetime.datetime(2017, 1, 3, 0, 0)
         self.time_delta = datetime.timedelta(seconds=1200)
@@ -36,11 +45,21 @@ class TransmissionTask:
         self.data_generator = DataGenerator(_delta_seconds=1200, _data_schema_type='1t', _noise_schema='1t',
                                             _with_noise=True)
         self.epoch_start = 1
-        self.epoch_number = 200
-        self.epoch_stop = 200
+        self.epoch_number = epoch_number
+        self.epoch_stop = epoch_number
         self.epoch_step = 1
         self.start_power = 0
         self.get_new_test_data_for_each_epoch = True
+        self.type = "transmission"
+
+    def get_legend(self):
+        return str(self.learning_module)
+
+    def get_info(self):
+        return self.learning_module.logger_info()
+
+    def get_type(self):
+        return self.type
 
 
 class TestPlan:
@@ -53,8 +72,10 @@ class TestPlan:
             self.learning_module = StandardLearning(e_greedy=e_greedy)
 
     class QLearning(TestSkeleton):
-        def __init__(self, e_greedy=0.5, learning_rate=.5, discount_factor=.5):
-            TestSkeleton.__init__(self)
+        def __init__(self, e_greedy=0.5, learning_rate=.5, discount_factor=.5, delay_award=150, awake_award=10,
+                     epoch=20, awake_penalty=20, delay_threshold=7.5):
+            TestSkeleton.__init__(self, delay_award=delay_award, awake_award=awake_award, epoch=epoch,
+                                  awake_penelty=awake_penalty, delay_threshold=delay_threshold)
             self.learning_module = QLearning(e_greedy=e_greedy, learning_rate=learning_rate,
                                              discount_factor=discount_factor)
 
@@ -67,8 +88,8 @@ class TestPlan:
                                                   discount_factor=discount_factor)
 
     class FixedDelay(TestSkeleton):
-        def __init__(self, delay=3):
-            TestSkeleton.__init__(self)
+        def __init__(self, delay=3, epoch=80):
+            TestSkeleton.__init__(self, epoch=epoch)
             self.learning_module = FixedDelay(delay=delay)
 
 
@@ -77,7 +98,7 @@ class TransmissionLearning:
         pass
 
     class QLearning(TransmissionTask):
-        def __init__(self, e_greedy=0.5, learning_rate=.5, discount_factor=.5):
+        def __init__(self, actions=np.array([0, 1, 2]), e_greedy=0.5, learning_rate=.5, discount_factor=.5):
             TransmissionTask.__init__(self)
-            self.learning_module = QLearning(e_greedy=e_greedy, learning_rate=learning_rate,
-                                             discount_factor=discount_factor)
+            self.learning_module = QLearning(actions=actions, e_greedy=e_greedy, learning_rate=learning_rate,
+                                             discount_factor=discount_factor, states_number=1440)

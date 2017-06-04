@@ -5,14 +5,6 @@ import numpy as np
 import datetime
 from random import randrange
 import csv
-import matplotlib
-matplotlib.use('TkAgg')
-matplotlib.rcParams['errorbar.capsize'] = 3
-matplotlib.rcParams['grid.linestyle'] = ':'
-matplotlib.rcParams.update({'font.size': 22})
-matplotlib.rc('xtick', labelsize=12)
-matplotlib.rc('ytick', labelsize=12)
-import matplotlib.pyplot as plt
 
 
 class DataGenerator:
@@ -61,7 +53,6 @@ class DataGenerator:
         return [data, data_noise]
 
     def generate_data_actions(self):
-        # np.random.seed(int(time.time()))
         data = np.linspace(0, 24, self.resolution)
         data_actions = np.zeros(int(self.resolution), dtype=np.int)
         working_day = self.data_schema[self.data_schema_type]
@@ -88,7 +79,6 @@ class DataGenerator:
         return [data, data_actions]
 
     def get_train_data(self):
-        # np.random.seed(int(time.time()))
         data_actions = self.generate_data_actions()[1]
         start_time = datetime.datetime(2017, 1, 2, 0, 0)
         end_time = datetime.datetime(2017, 1, 3, 0, 0)
@@ -102,11 +92,20 @@ class DataGenerator:
 
 
 if __name__ == "__main__":
+    import matplotlib
+    matplotlib.use('TkAgg')
+    matplotlib.rcParams['errorbar.capsize'] = 3
+    matplotlib.rcParams['grid.linestyle'] = ':'
+    matplotlib.rcParams.update({'font.size': 22})
+    matplotlib.rc('xtick', labelsize=12)
+    matplotlib.rc('ytick', labelsize=12)
+    import matplotlib.pyplot as plt
     module = DataGenerator(_with_noise=False)
     test = module.generate_data_actions()
     _noise = module.generate_data_noise()
     module.with_noise = True
     noised_data = module.generate_data_actions()
+    print(test[1])
     plt.errorbar(test[0], test[1], yerr=_noise[1], linestyle='dotted', fmt='o', ecolor='g', capthick=2, marker='d',
                  markersize=1)
     plt.plot(test[0], noised_data[1], 'ro')
