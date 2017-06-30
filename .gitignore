@@ -1,1 +1,11 @@
+simulation_tool/.directory
+simulation_tool/html/
 .idea/**
+/html/*
+*.pyc
+**.npy
+**.txt.npy
+*.csv
+simulation_tool/prepare_data/
+simulation_tool/prepare_data0/*
+simulation_tool/prepare_data1/*
