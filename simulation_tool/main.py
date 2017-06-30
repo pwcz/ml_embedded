@@ -4,8 +4,8 @@ import datetime
 import csv
 import logging
 import socket
-from symulator import System, SystemTransmission
-from test_plan import TestPlan, TransmissionLearning
+from symulator import System
+from test_plan import TestPlan
 from timeit import default_timer as timer
 from copy import deepcopy
 import numpy as np
@@ -50,11 +50,7 @@ class SimulationProcess:
         # get training data
         sim_start = timer()
         training_data_gold = self.training_data_generator.get_train_data()
-
-        if self.sim_type == "transmission":
-            embedded = SystemTransmission(self.start_time, start_power=self.start_power, test_plan=self.test_plan)
-        else:
-            embedded = System(self.start_time, start_power=self.start_power, test_plan=self.test_plan)
+        embedded = System(self.start_time, start_power=self.start_power, test_plan=self.test_plan)
 
         for epoch in range(self.epoch_start, self.epoch_stop + 1, self.epoch_step):
             # time measure
@@ -76,6 +72,7 @@ class SimulationProcess:
             for current_time in self.training_data_generator.time_range(self.start_time, self.end_time,
                                                                         self.time_delta_sym):
                 # external clock
+                # print(current_time)
                 embedded.simulation_step(current_time)
 
                 # event actions
@@ -87,21 +84,7 @@ class SimulationProcess:
 
             # collecting data
             end = timer()
-            if self.sim_type == "transmission":
-                delays = embedded.delays
-                _sum = count = 0
-                for x in delays:
-                    if x != []:
-                        _sum += sum(x)
-                        count += len(x)
-                avg_delay = float(_sum) / float(count)
-                if avg_delay < 0:
-                    print(avg_delay)
-                    print(embedded.delays)
-                    print("MAIN STOP")
-                    sys.exit()
-            else:
-                avg_delay = sum(data_record['delays_data'])/len(data_record['delays_data'])
+            avg_delay = sum(data_record['delays_data'])/len(data_record['delays_data'])
             self.epoch_data['average_delay'] .append(avg_delay)
             self.epoch_data['power_left'].append(embedded.power_left)
             self.epoch_data['epoch'].append(epoch)
@@ -119,6 +102,10 @@ class SimulationProcess:
                      '{:05.2f}'.format(np.mean(self.epoch_data['average_delay'][-10:])) + " | avg. power consum.: " +
                      '{:05.2f}'.format(np.mean(self.epoch_data['power_left'][-10:])) + " |"
                      )
+        try:
+            embedded.learning_a.show_q_data()
+        except AttributeError:
+            pass
 
 
 class MultipleTests:
@@ -224,7 +211,7 @@ class MultipleTests:
 
 
 def primitive_hill_climb(split_number=10, current_number=0, logs_name="test"):
-    single_epoch_time = 72
+    single_epoch_time = 3
     test_count = 3
     _epoch_number = 80
     result_tab = []
@@ -234,7 +221,7 @@ def primitive_hill_climb(split_number=10, current_number=0, logs_name="test"):
         verify = False
 
     delay_award = np.arange(500, 1000, 25)  # penalty for delay
-    award_time_threshold = [7.5]  # np.arange(3.5, 9, 0.25)  # award time threshold
+    award_time_threshold = np.arange(3.5, 9, 0.25)  # np.arange(3.5, 9, 0.3)  # [4.5, 5.5, 6.5, 7.5]  # award time threshold
     awake_penalty = np.arange(5, 50, 5)  # penalty for unnecessary awake
     awake_award = np.arange(300, 700, 25)  # award for necessary awake
     e_greedy = [1]  # np.arange(0, 1.05, 0.05)  # eps for greedy strategy
@@ -294,11 +281,29 @@ if __name__ == "__main__":
         primitive_hill_climb(current_number=int(sys.argv[1]), split_number=int(sys.argv[2]), logs_name=sys.argv[3])
         sys.exit()
 
-    #  generate plot
-    # _epoch_number = 160
-    # _test_number = 40
-    _epoch_number = 200
-    _test_number = 3
+    #  generate plot for fixed parameters
+    _epoch_number = 150
+    _test_number = 10
+    # _epoch_number = 100
+    # _test_number = 3
+    # env = MultipleTests([SimulationProcess(TestPlan.QLearning(e_greedy=0.1, learning_rate=.3, discount_factor=0.05,
+    #                                                           awake_award=500, awake_penalty=21, delay_award=475,
+    #                                                           delay_threshold=7.5, epoch=_epoch_number))]
+    #                     , test_count=_test_number)
+
+    # env = MultipleTests([SimulationProcess(TestPlan.QLearning(e_greedy=0.1, learning_rate=.5, discount_factor=0.05,
+    #                                                           awake_award=600, awake_penalty=35, delay_award=450,
+    #                                                           delay_threshold=5, epoch=_epoch_number)),
+    #                      SimulationProcess(TestPlan.QLearning(e_greedy=0.1, learning_rate=.85, discount_factor=0.05,
+    #                                                           awake_award=600, awake_penalty=35, delay_award=450,
+    #                                                           delay_threshold=5, epoch=_epoch_number)),
+    #                      SimulationProcess(TestPlan.QLearning(e_greedy=0.1, learning_rate=.85, discount_factor=0.05,
+    #                                                           awake_award=625, awake_penalty=35, delay_award=450,
+    #                                                           delay_threshold=6, epoch=_epoch_number)),
+    #                      SimulationProcess(TestPlan.QLearning(e_greedy=0.1, learning_rate=.85, discount_factor=0.05,
+    #                                                           awake_award=625, awake_penalty=40, delay_award=475,
+    #                                                           delay_threshold=6, epoch=_epoch_number))]
+    #                     , test_count=_test_number)
 
     # env = MultipleTests([SimulationProcess(TestPlan.QLearning(e_greedy=1, learning_rate=.6, discount_factor=0.5,
     #                                                           awake_award=500, awake_penalty=19, delay_award=875,
@@ -307,11 +312,28 @@ if __name__ == "__main__":
     #                      SimulationProcess(TestPlan.FixedDelay(delay=9, epoch=_epoch_number))]
     #                     , test_count=_test_number)
 
+    env = MultipleTests([SimulationProcess(TestPlan.QLearning(e_greedy=0.05, learning_rate=.35, discount_factor=0.45,
+                                                              awake_award=575, awake_penalty=40, delay_award=500,
+                                                              delay_threshold=8, epoch=_epoch_number,
+                                                              states_number=40)),
+                        SimulationProcess(TestPlan.QLearning(e_greedy=0.1, learning_rate=.35, discount_factor=0.45,
+                                                             awake_award=575, awake_penalty=40, delay_award=500,
+                                                             delay_threshold=8, epoch=_epoch_number, states_number=40)),
+                        SimulationProcess(TestPlan.QLearning(e_greedy=0.15, learning_rate=.35, discount_factor=0.45,
+                                                             awake_award=575, awake_penalty=40, delay_award=500,
+                                                             delay_threshold=8, epoch=_epoch_number, states_number=40)),
+                        SimulationProcess(TestPlan.QLearning(e_greedy=0.2, learning_rate=.35, discount_factor=0.45,
+                                                             awake_award=575, awake_penalty=40, delay_award=500,
+                                                             delay_threshold=8, epoch=_epoch_number, states_number=40)),
+                        SimulationProcess(TestPlan.QLearning(e_greedy=0.25, learning_rate=.35, discount_factor=0.45,
+                                                             awake_award=575, awake_penalty=40, delay_award=500,
+                                                             delay_threshold=8, epoch=_epoch_number, states_number=40)),
+                         SimulationProcess(TestPlan.FixedDelay(delay=9, epoch=_epoch_number))]
+                        , test_count=_test_number)
     # env = MultipleTests([SimulationProcess(TestPlan.QLearning(e_greedy=1, learning_rate=.35, discount_factor=0.45,
-    #                                                           awake_award=500, awake_penalty=20, delay_award=875,
-    #                                                           delay_threshold=7.5, epoch=_epoch_number,
-    #                                                           states_number=72 * 2)),
-    #                      SimulationProcess(TestPlan.FixedDelay(delay=9, epoch=_epoch_number))]
+    #                                                           awake_award=575, awake_penalty=40, delay_award=500,
+    #                                                           delay_threshold=8, epoch=_epoch_number,
+    #                                                           states_number=40))]
     #                     , test_count=_test_number)
 
     # env = MultipleTests([SimulationProcess(TransmissionLearning.QLearning(e_greedy=1, learning_rate=.35,
@@ -324,14 +346,17 @@ if __name__ == "__main__":
     #                                                                       discount_factor=0.5, lmode='timeout',
     #                                                                       epoch_number=_epoch_number))]
     #                     , test_count=_test_number)
+    # env = MultipleTests([SimulationProcess(TransmissionLearning.QLearning(e_greedy=1, learning_rate=.35,
+    #                                                                       discount_factor=0.45, lmode='ml',
+    #                                                                       epoch_number=_epoch_number)),
+    #                     SimulationProcess(TransmissionLearning.QLearning(e_greedy=.1, learning_rate=.5,
+    #                                                                      discount_factor=0.5, lmode='sms',
+    #                                                                      epoch_number=_epoch_number))]
+    #                     , test_count=_test_number)
 
-    env = MultipleTests([SimulationProcess(TransmissionLearning.QLearning(e_greedy=1, learning_rate=.35,
-                                                                          discount_factor=0.45, lmode='ml',
-                                                                          epoch_number=_epoch_number)),
-                        SimulationProcess(TransmissionLearning.QLearning(e_greedy=.1, learning_rate=.5,
-                                                                         discount_factor=0.5, lmode='sms',
-                                                                         epoch_number=_epoch_number))]
-                        , test_count=_test_number)
+    # env = MultipleTests([SimulationProcess(TransmissionLearning.QLearning(e_greedy=.1, learning_rate=.5,
+    #                                                                       discount_factor=0.5, lmode='sms'))]
+    #                     , test_count=_test_number)
 
     env.start()
     env.display_results(['average_delay', 'power_left'])

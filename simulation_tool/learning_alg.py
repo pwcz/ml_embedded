@@ -103,6 +103,20 @@ class QLearning:
             self.current_state = state
             return self.actions[self.action]
 
+    def show_q_data(self):
+        print("PRINT Q DATA")
+        print("float Q[" + str(self.states_num) + "][5] = {")
+        for state in range(self.states_num):
+            actions = []
+            for action in range(5):
+                actions.append(str(self.q_table[state][action]))
+            print("{" + ",".join(actions) + "},")
+        print("}")
+        # print(self.q_table)
+        print("END PRINT Q DATA")
+        # for x in range(self.states_num):
+        #     print(self.actions[np.argmax(self.q_table[x, :])])
+
     def update_q_table(self, reward, next_state):
         delta = self.lr*(reward + self.y*np.max(self.q_table[next_state, :]) -
                          self.q_table[self.current_state, self.action])

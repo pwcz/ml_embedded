@@ -4,6 +4,7 @@ simulation_tool/html/
 /html/*
 *.pyc
 **.npy
+**.png
 **.txt.npy
 *.csv
 simulation_tool/prepare_data/

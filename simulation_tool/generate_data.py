@@ -8,9 +8,9 @@ import csv
 
 
 class DataGenerator:
-    def __init__(self, _delta_seconds=1200, _data_schema_type='1t', _noise_schema='1t', _with_noise=True):
+    def __init__(self, _delta_seconds=180, _data_schema_type='1t', _noise_schema='1t', _with_noise=True):
         self.delta_seconds = _delta_seconds
-        self.SECONDS_IN_DAY = 24*60*60
+        self.SECONDS_IN_DAY = 60*60
         self.resolution = self.SECONDS_IN_DAY/self.delta_seconds
         self.data_schema_type = _data_schema_type
         self.noise_schema_type = _noise_schema
@@ -81,8 +81,8 @@ class DataGenerator:
     def get_train_data(self):
         data_actions = self.generate_data_actions()[1]
         start_time = datetime.datetime(2017, 1, 2, 0, 0)
-        end_time = datetime.datetime(2017, 1, 3, 0, 0)
-        time_delta = datetime.timedelta(seconds=1200)
+        end_time = datetime.datetime(2017, 1, 2, 1, 0)
+        time_delta = datetime.timedelta(seconds=self.delta_seconds)
 
         training_data = []
         for i, x in enumerate(self.time_range(start_time, end_time, time_delta)):
@@ -107,22 +107,29 @@ if __name__ == "__main__":
     noised_data = module.generate_data_actions()
     print(test[1])
     plt.errorbar(test[0], test[1], yerr=_noise[1], linestyle='dotted', fmt='o', ecolor='g', capthick=2, marker='d',
-                 markersize=1)
-    plt.plot(test[0], noised_data[1], 'ro')
+                 markersize=0)
+    plt.plot(test[0], test[1], 'ro--')
     plt.xlabel("czas [h]")
     plt.ylabel("liczba użytkowników")
-    plt.xlim([0, 24])
+    # plt.xlim([0, 1])
     plt.ylim([0, max(test[1]+_noise[1])+1])
-    plt.xticks(np.arange(0, 25, 2))
+    # plt.xticks(np.arange(0, 25, 2))
     plt.grid()
     plt.savefig("training_data.png")
+    data = []
+    noised_data = module.get_train_data()
+    print("data size: " + str(len(noised_data)))
+    for i, x in enumerate(noised_data):
+        print(x)
+        data.append([i, x])
     plt.show()
     # generate training data
-    data = []
-    for _ in range(100):
-        noised_data = module.generate_data_actions()
-        for i, x in enumerate(noised_data[1]):
-            data.append([i, x])
-    with open('learning_data.csv', 'w') as fp:
-        a = csv.writer(fp, delimiter=';')
-        a.writerows(data)
+    # data = []
+    # for _ in range(100):
+    #     noised_data = module.get_train_data()
+    #     for i, x in enumerate(noised_data[1]):
+    #         print(x)
+    #         data.append([i, x])
+    # with open('learning_data.csv', 'w') as fp:
+    #     a = csv.writer(fp, delimiter=';')
+    #     a.writerows(data)
