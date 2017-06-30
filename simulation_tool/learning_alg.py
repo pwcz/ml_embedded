@@ -71,8 +71,7 @@ class SARSAAlgorithm:
 
 
 class QLearning:
-    def __init__(self, actions=np.array([12, 10, 8, 6, 4]), learning_rate=.5, discount_factor=.5,
-                 e_greedy=.5, states_number=72):
+    def __init__(self, actions, learning_rate=.5, discount_factor=.5, e_greedy=.5, states_number=None):
         self.actions = actions
         self.states_num = states_number
         self.lr = learning_rate
@@ -133,6 +132,6 @@ class FixedDelay:
         return self.logger_info()
 
     def logger_info(self):
-        return r"Fixed delay: " + str(self.const_delay)
+        return r"Stały czas wybudzania: " + str(self.const_delay) + " s"
 
     update_knowledge = update_q_table
