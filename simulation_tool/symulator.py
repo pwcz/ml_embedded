@@ -253,7 +253,7 @@ class SystemTransmission:
     def time2state(self, _current_time):
         time_state = int((_current_time.hour * 3600 + _current_time.minute * 60 + _current_time.second) /
                          self.decision_interval)
-        val = time_state + 72 * len(self.buff)
+        val = time_state + 72 * self.buff2state(len(self.buff))
         return val
 
     def datatime2seconds(self, _current_time):
@@ -264,4 +264,14 @@ class SystemTransmission:
         if res_time < 0:
             res_time = 86400 - self.datatime2seconds(second_time) + self.datatime2seconds(first_time)
         return res_time
+
+    def buff2state(self, n):
+        if n == 0:
+            return 0
+        elif n == 1:
+            return 1
+        elif n < 8:
+            return int(np.log2(n)+1)
+        else:
+            return int(np.log2(n-1) + 1)
 
